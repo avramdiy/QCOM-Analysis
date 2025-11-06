@@ -2,6 +2,13 @@ import os
 from flask import Flask, request, Response, render_template_string
 import pandas as pd
 
+# plotting imports
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import io
+import base64
+
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_FILE = os.path.join(BASE_DIR, "qcom.us.txt")
@@ -110,6 +117,68 @@ def api():
 		except Exception:
 				rows = 50
 		return DF.head(rows).to_json(orient="records", date_format="iso")
+
+
+@app.route("/viz/monthly-volume")
+def viz_monthly_volume():
+	"""Generate a PNG plot of average monthly Volume for each of the three period DataFrames.
+	Returns an HTML page with the embedded image.
+	"""
+	if DF is None:
+		return Response("Data file not found or failed to load.", status=500)
+
+	series_list = []
+	labels = []
+	# helper to compute monthly mean
+	def monthly_mean(df):
+		if df is None or df.empty:
+			return None
+		s = df.set_index("Date")["Volume"].resample('M').mean()
+		return s
+
+	s1 = monthly_mean(df_1991_1999)
+	s2 = monthly_mean(df_2000_2009)
+	s3 = monthly_mean(df_2010_2017)
+
+	if s1 is not None:
+		series_list.append(s1)
+		labels.append('1991-1999')
+	if s2 is not None:
+		series_list.append(s2)
+		labels.append('2000-2009')
+	if s3 is not None:
+		series_list.append(s3)
+		labels.append('2010-2017')
+
+	if not series_list:
+		return Response("No period data available to plot.", status=500)
+
+	# create figure
+	fig, ax = plt.subplots(figsize=(10, 4))
+	for s, lbl in zip(series_list, labels):
+		ax.plot(s.index, s.values, marker='.', label=lbl)
+
+	ax.set_title('Average Monthly Volume by Period')
+	ax.set_xlabel('Date')
+	ax.set_ylabel('Average Volume')
+	ax.legend()
+	fig.autofmt_xdate()
+
+	buf = io.BytesIO()
+	fig.savefig(buf, format='png', bbox_inches='tight')
+	plt.close(fig)
+	buf.seek(0)
+	img_b64 = base64.b64encode(buf.read()).decode('ascii')
+
+	html = f"""
+	<html><head><title>Monthly Volume</title></head>
+	<body>
+	  <h1>Average Monthly Volume (period splits)</h1>
+	  <p>Lines show monthly average Volume for each period.</p>
+	  <img src="data:image/png;base64,{img_b64}" alt="monthly-volume" />
+	</body></html>
+	"""
+	return html
 
 
 if __name__ == "__main__":

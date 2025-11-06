@@ -26,6 +26,14 @@
 
 ### 3rd Commit
 
+- Added a visualization route `/viz/monthly-volume` to `app/data.py` that plots the average monthly trading volume for each period-split DataFrame (`df_1991_1999`, `df_2000_2009`, `df_2010_2017`).
+- Implementation notes:
+	- Uses matplotlib (Agg backend) to render a PNG of the monthly-average Volume series for each period and embeds the image as base64 in an HTML response.
+	- Keeps existing endpoints unchanged; the new route is additive and intended for quick exploratory comparison across market/regime periods.
+	- Dependency added: `matplotlib` (install with `python -m pip install --user matplotlib`).
+
+Reasoning: a single chart comparing monthly-average volumes across the three periods makes it easy to spot shifts in liquidity and trading activity between the dot-com/pre-2000 era, the 2000s (including the 2008 crisis), and the smartphone/5G era (2010–2017).
+
 ### 4th Commit
 
 ### 5th Commit
