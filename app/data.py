@@ -242,6 +242,66 @@ def viz_yearly_open():
 	return html
 
 
+@app.route("/viz/bollinger")
+def viz_bollinger():
+	"""Plot Bollinger Bands (20-day SMA ±2σ) for Close price for each period-split DataFrame.
+	Returns an HTML page with the embedded PNG containing three stacked subplots (one per period).
+	"""
+	if DF is None:
+		return Response("Data file not found or failed to load.", status=500)
+
+	def bollinger_df(df):
+		if df is None or df.empty:
+			return None
+		s = df.set_index("Date")["Close"].sort_index()
+		ma = s.rolling(window=20, min_periods=1).mean()
+		sd = s.rolling(window=20, min_periods=1).std().fillna(0)
+		upper = ma + 2 * sd
+		lower = ma - 2 * sd
+		return pd.DataFrame({"Close": s, "MA": ma, "Upper": upper, "Lower": lower})
+
+	b1 = bollinger_df(df_1991_1999)
+	b2 = bollinger_df(df_2000_2009)
+	b3 = bollinger_df(df_2010_2017)
+
+	items = [(b1, '1991-1999'), (b2, '2000-2009'), (b3, '2010-2017')]
+	items = [it for it in items if it[0] is not None and not it[0].empty]
+
+	if not items:
+		return Response("No period data available to plot.", status=500)
+
+	n = len(items)
+	fig, axes = plt.subplots(nrows=n, ncols=1, figsize=(12, 4 * n), sharex=False)
+	if n == 1:
+		axes = [axes]
+
+	for ax, (dfb, label) in zip(axes, items):
+		ax.plot(dfb.index, dfb['Close'], color='C0', linewidth=1, label='Close')
+		ax.plot(dfb.index, dfb['MA'], color='C1', linewidth=1, label='20-day MA')
+		ax.fill_between(dfb.index, dfb['Lower'], dfb['Upper'], color='C1', alpha=0.2, label='±2σ')
+		ax.set_title(f'Bollinger Bands - {label}')
+		ax.set_ylabel('Price')
+		ax.legend(loc='upper left')
+
+	fig.autofmt_xdate()
+
+	buf = io.BytesIO()
+	fig.savefig(buf, format='png', bbox_inches='tight')
+	plt.close(fig)
+	buf.seek(0)
+	img_b64 = base64.b64encode(buf.read()).decode('ascii')
+
+	html = f"""
+	<html><head><title>Bollinger Bands by Period</title></head>
+	<body>
+	  <h1>Bollinger Bands (20-day SMA ±2σ) by Period</h1>
+	  <p>Each subplot shows Close price, 20-day moving average, and ±2σ band for the decade slice.</p>
+	  <img src="data:image/png;base64,{img_b64}" alt="bollinger-bands" />
+	</body></html>
+	"""
+	return html
+
+
 if __name__ == "__main__":
 		# Run local dev server
 		app.run(host="127.0.0.1", port=5000, debug=True)

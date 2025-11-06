@@ -45,3 +45,11 @@ Reasoning: a single chart comparing monthly-average volumes across the three per
 Reasoning: yearly-average Open price highlights long-term trends and regime shifts in pricing across the three historical periods, making it easy to compare structural price levels between eras.
 
 ### 5th Commit
+
+- Added a visualization route `/viz/bollinger` to `app/data.py` that computes and plots Bollinger Bands (20-day SMA ± 2σ) for the Close price for each period-split DataFrame (`df_1991_1999`, `df_2000_2009`, `df_2010_2017`).
+- Implementation notes:
+	- For each period, computes a 20-day rolling mean and standard deviation on `Close`, constructs upper/lower bands, and plots Close, MA and shaded bands in one subplot per period.
+	- Uses matplotlib (Agg) and returns the figure as an embedded PNG in an HTML response (consistent with earlier viz endpoints).
+	- Route is additive and does not change previous endpoints.
+
+Reasoning: Bollinger Bands help visualize volatility regimes and price compression/expansion across the historical periods; plotting them by period makes it straightforward to compare volatility behavior decade-by-decade.
