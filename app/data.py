@@ -24,6 +24,27 @@ def load_data(path=DATA_FILE):
 # Load once at import (fast for this dataset). If the file changes often, replace with lazy loading.
 DF = load_data()
 
+# Preprocess: drop unused column and split into three period-based DataFrames
+df_1991_1999 = None
+df_2000_2009 = None
+df_2010_2017 = None
+if DF is not None:
+	# Drop OpenInt if present (dataset contains zeros/unneeded column)
+	if "OpenInt" in DF.columns:
+		DF = DF.drop(columns=["OpenInt"])
+
+	# Ensure Date is datetime
+	if "Date" in DF.columns:
+		DF["Date"] = pd.to_datetime(DF["Date"]) 
+
+		# Define ranges (inclusive)
+		df_1991_1999 = DF[(DF["Date"] >= "1991-12-16") & (DF["Date"] <= "1999-12-31")].copy().reset_index(drop=True)
+		df_2000_2009 = DF[(DF["Date"] >= "2000-01-01") & (DF["Date"] <= "2009-12-31")].copy().reset_index(drop=True)
+		df_2010_2017 = DF[(DF["Date"] >= "2010-01-01") & (DF["Date"] <= "2017-11-10")].copy().reset_index(drop=True)
+
+	# Keep DF as the full, cleaned DataFrame for existing endpoints
+	DF = DF.reset_index(drop=True)
+
 app = Flask(__name__)
 
 
