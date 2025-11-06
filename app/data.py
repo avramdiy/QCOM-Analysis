@@ -181,6 +181,67 @@ def viz_monthly_volume():
 	return html
 
 
+@app.route("/viz/yearly-open")
+def viz_yearly_open():
+	"""Generate a PNG plot of yearly-average Open price for each of the three period DataFrames.
+	Returns an HTML page with the embedded image.
+	"""
+	if DF is None:
+		return Response("Data file not found or failed to load.", status=500)
+
+	series_list = []
+	labels = []
+
+	def yearly_mean(df):
+		if df is None or df.empty:
+			return None
+		s = df.set_index("Date")["Open"].resample('Y').mean()
+		return s
+
+	s1 = yearly_mean(df_1991_1999)
+	s2 = yearly_mean(df_2000_2009)
+	s3 = yearly_mean(df_2010_2017)
+
+	if s1 is not None:
+		series_list.append(s1)
+		labels.append('1991-1999')
+	if s2 is not None:
+		series_list.append(s2)
+		labels.append('2000-2009')
+	if s3 is not None:
+		series_list.append(s3)
+		labels.append('2010-2017')
+
+	if not series_list:
+		return Response("No period data available to plot.", status=500)
+
+	fig, ax = plt.subplots(figsize=(10, 4))
+	for s, lbl in zip(series_list, labels):
+		ax.plot(s.index, s.values, marker='o', label=lbl)
+
+	ax.set_title('Yearly Average Open Price by Period')
+	ax.set_xlabel('Year')
+	ax.set_ylabel('Average Open Price')
+	ax.legend()
+	fig.autofmt_xdate()
+
+	buf = io.BytesIO()
+	fig.savefig(buf, format='png', bbox_inches='tight')
+	plt.close(fig)
+	buf.seek(0)
+	img_b64 = base64.b64encode(buf.read()).decode('ascii')
+
+	html = f"""
+	<html><head><title>Yearly Average Open</title></head>
+	<body>
+	  <h1>Yearly Average Open Price (period splits)</h1>
+	  <p>Lines show yearly-average Open price for each period.</p>
+	  <img src="data:image/png;base64,{img_b64}" alt="yearly-open" />
+	</body></html>
+	"""
+	return html
+
+
 if __name__ == "__main__":
 		# Run local dev server
 		app.run(host="127.0.0.1", port=5000, debug=True)

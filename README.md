@@ -36,4 +36,12 @@ Reasoning: a single chart comparing monthly-average volumes across the three per
 
 ### 4th Commit
 
+- Added a visualization route `/viz/yearly-open` to `app/data.py` that plots the yearly-average "Open" price for each period-split DataFrame (`df_1991_1999`, `df_2000_2009`, `df_2010_2017`).
+- Implementation notes:
+	- Computes yearly means (resample by 'Y') of the `Open` column for each DataFrame and plots them on a single time-series chart.
+	- Uses the existing matplotlib setup (Agg backend) and returns the plot as an embedded PNG in an HTML response, similar to `/viz/monthly-volume`.
+	- Route is additive; no changes to earlier endpoints.
+
+Reasoning: yearly-average Open price highlights long-term trends and regime shifts in pricing across the three historical periods, making it easy to compare structural price levels between eras.
+
 ### 5th Commit
